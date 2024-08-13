@@ -4,6 +4,7 @@ import pandas as pd
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Input
 from tensorflow.keras.optimizers import Adam
+from sklearn.preprocessing import MinMaxScaler
 import joblib
 
 def create_sequences(data, seq_length=30):
@@ -39,15 +40,19 @@ def process_and_train_all_cities(data_dir, model_dir):
             df = pd.read_csv(file_path)
             heat_index = df[['HeatIndex']].values
 
-            scaler_path = os.path.join(model_dir, f'{city_name}_scaler.pkl')
-            scaler = joblib.load(scaler_path)
-            scaled_data = scaler.transform(heat_index)
+            # Scale data without strict range
+            scaler = MinMaxScaler()  # Default scaling
+            scaled_data = scaler.fit_transform(heat_index)
 
             model = train_lstm_model(scaled_data)
 
+            # Save model and scaler
             model_path = os.path.join(model_dir, f'{city_name}_heat_index_model.keras')
+            scaler_path = os.path.join(model_dir, f'{city_name}_scaler.pkl')
+            
             model.save(model_path)
-            print(f"Model saved for {city_name}")
+            joblib.dump(scaler, scaler_path)
+            print(f"Model and scaler saved for {city_name}")
 
 # Train models for all cities
 data_directory = '/Users/carol/Documents/School/3rd Year/2nd Sem/Forecast/Heat Index Forecasting App/backend/Data'
