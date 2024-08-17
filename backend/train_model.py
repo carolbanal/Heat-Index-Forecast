@@ -1,60 +1,52 @@
 import os
-import numpy as np
 import pandas as pd
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Input
-from tensorflow.keras.optimizers import Adam
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 import joblib
 
-def create_sequences(data, seq_length=30):
-    X, y = [], []
-    for i in range(seq_length, len(data)):
-        X.append(data[i-seq_length:i, 0])
-        y.append(data[i, 0])
-    return np.array(X), np.array(y)
-
-def train_lstm_model(scaled_data, seq_length=30):
-    X, y = create_sequences(scaled_data, seq_length)
-    X = X[:, :, np.newaxis]  # Add a new dimension for LSTM input
-    model = Sequential([
-        Input(shape=(X.shape[1], X.shape[2])),  # Use Input layer to specify input shape
-        LSTM(50, return_sequences=True),
-        LSTM(50),
-        Dense(1)
-    ])
-    model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
-    model.fit(X, y, epochs=20, batch_size=32)
+def train_linear_regression_model(X, y):
+    model = LinearRegression()
+    model.fit(X, y)
     return model
 
-def process_and_train_all_cities(data_dir, model_dir):
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-
-    for filename in os.listdir(data_dir):
-        if filename.endswith('.csv'):
-            city_name = filename.replace('.csv', '')
-            file_path = os.path.join(data_dir, filename)
+def process_and_train_all_cities(data_directory, model_directory):
+    for city_file in os.listdir(data_directory):
+        if city_file.endswith('.csv'):
+            city_name = city_file.replace('.csv', '')
             print(f"Training model for {city_name}...")
 
-            df = pd.read_csv(file_path)
-            heat_index = df[['HeatIndex']].values
+            df = pd.read_csv(os.path.join(data_directory, city_file))
 
-            # Scale data without strict range
-            scaler = MinMaxScaler()  # Default scaling
-            scaled_data = scaler.fit_transform(heat_index)
+            # Fill NaN values with the mean of the column
+            df = df.fillna(df.mean())
 
-            model = train_lstm_model(scaled_data)
+            # If the dataset is still empty after filling NaNs, skip it
+            if df.empty:
+                print(f"No data available for {city_name} after handling NaNs. Skipping...")
+                continue
 
-            # Save model and scaler
-            model_path = os.path.join(model_dir, f'{city_name}_heat_index_model.keras')
-            scaler_path = os.path.join(model_dir, f'{city_name}_scaler.pkl')
-            
-            model.save(model_path)
-            joblib.dump(scaler, scaler_path)
-            print(f"Model and scaler saved for {city_name}")
+            X = df[['Year', 'Month', 'Day']]
+            y = df['HeatIndex']
 
-# Train models for all cities
-data_directory = '/Users/carol/Documents/School/3rd Year/2nd Sem/Forecast/Heat Index Forecasting App/backend/Data'
-model_directory = '/Users/carol/Documents/School/3rd Year/2nd Sem/Forecast/Heat Index Forecasting App/backend/models'
-process_and_train_all_cities(data_directory, model_directory)
+            scaler_X = StandardScaler()
+            scaler_y = StandardScaler()
+
+            scaled_X = scaler_X.fit_transform(X)
+            scaled_y = scaler_y.fit_transform(y.values.reshape(-1, 1))
+
+            model = train_linear_regression_model(scaled_X, scaled_y)
+
+            # Save the model and scalers
+            model_path = os.path.join(model_directory, f'{city_name}_heat_index_model.pkl')
+            scaler_X_path = os.path.join(model_directory, f'{city_name}_scaler_X.pkl')
+            scaler_y_path = os.path.join(model_directory, f'{city_name}_scaler_y.pkl')
+
+            joblib.dump(model, model_path)
+            joblib.dump(scaler_X, scaler_X_path)
+            joblib.dump(scaler_y, scaler_y_path)
+
+if __name__ == "__main__":
+    data_directory = '/Users/carol/Documents/School/3rd Year/2nd Sem/Forecast/Heat Index Forecasting App/backend/Data'
+    model_directory = '/Users/carol/Documents/School/3rd Year/2nd Sem/Forecast/Heat Index Forecasting App/backend/models'
+
+    process_and_train_all_cities(data_directory, model_directory)
