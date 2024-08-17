@@ -40,7 +40,7 @@ To set up the project locally, follow these steps:
 
 4. **Run the application:**
    ```bash
-   python app.py
+   python backend/app.py
 
 
 
