@@ -13,9 +13,9 @@ Welcome to the Heat Index Forecasting App repository! This application is design
 ## Project Structure
 
 - **`backend/`**: Contains the backend code and model files.
+  - **`app.py`**: Main application script for serving the API.
   - **`Data/`**: Historical weather data.
   - **`models/`**: Saved machine learning models and scalers.
-- **`app.py`**: Main application script for serving the API.
 - **`requirements.txt`**: Python dependencies for the project.
 
 ## Installation
