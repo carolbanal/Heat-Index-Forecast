@@ -4,7 +4,6 @@ import os
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from keras.models import load_model
 import logging
 
 app = FastAPI()
@@ -18,25 +17,27 @@ logger = logging.getLogger(__name__)
 def load_city_models():
     city_models = {}
     for model_file in os.listdir(model_directory):
-        if model_file.endswith('_heat_index_model.keras'):
-            city_name = model_file.replace('_heat_index_model.keras', '')
+        if model_file.endswith('_heat_index_model.pkl'):
+            city_name = model_file.replace('_heat_index_model.pkl', '')
             model_path = os.path.join(model_directory, model_file)
-            scaler_path = os.path.join(model_directory, f"{city_name}_scaler.pkl")
+            scaler_X_path = os.path.join(model_directory, f"{city_name}_scaler_X.pkl")
+            scaler_y_path = os.path.join(model_directory, f"{city_name}_scaler_y.pkl")
             
             try:
-                model = load_model(model_path)
+                model = joblib.load(model_path)
             except Exception as e:
                 logger.error(f"Error loading model for {city_name}: {e}")
                 continue
             
-            if os.path.exists(scaler_path):
+            if os.path.exists(scaler_X_path) and os.path.exists(scaler_y_path):
                 try:
-                    scaler = joblib.load(scaler_path)
-                    city_models[city_name] = (model, scaler)
+                    scaler_X = joblib.load(scaler_X_path)
+                    scaler_y = joblib.load(scaler_y_path)
+                    city_models[city_name] = (model, scaler_X, scaler_y)
                 except Exception as e:
-                    logger.error(f"Error loading scaler for {city_name}: {e}")
+                    logger.error(f"Error loading scalers for {city_name}: {e}")
             else:
-                logger.warning(f"Scaler file for {city_name} not found. Skipping...")
+                logger.warning(f"Scalers for {city_name} not found. Skipping...")
     
     return city_models
 
@@ -71,28 +72,26 @@ def get_current_forecast(city: str):
     if city not in city_models:
         raise HTTPException(status_code=404, detail="City not found")
     
-    model, scaler = city_models[city]
+    model, scaler_X, scaler_y = city_models[city]
     today = datetime.today()
     today_str = today.strftime("%Y-%m-%d")
     
-    latest_date = np.array([[today.day]]).reshape(-1, 1)
+    latest_date = np.array([[today.year, today.month, today.day]])
     
     try:
-        latest_scaled = scaler.transform(latest_date)
+        latest_scaled = scaler_X.transform(latest_date)
         predicted_heat_index = model.predict(latest_scaled)
-        predicted_heat_index = scaler.inverse_transform(predicted_heat_index)[0, 0]
-        
-        # Clamp predicted value to a reasonable range
-        predicted_heat_index = max(20, min(60, predicted_heat_index))
+        predicted_heat_index = scaler_y.inverse_transform(predicted_heat_index.reshape(-1, 1))[0, 0]
+        predicted_heat_index = int(max(20, min(60, predicted_heat_index)))  # Convert to integer
     except Exception as e:
         logger.error(f"Error making prediction for {city}: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
-    update_csv(city, {today_str: float(predicted_heat_index)})
+    update_csv(city, {today_str: predicted_heat_index})
     
     return {
         "city": city,
-        "current_heat_index": float(predicted_heat_index),
+        "current_heat_index": predicted_heat_index,
         "date": today_str
     }
 
@@ -101,27 +100,24 @@ def get_7_day_forecast(city: str):
     if city not in city_models:
         raise HTTPException(status_code=404, detail="City not found")
     
-    model, scaler = city_models[city]
+    model, scaler_X, scaler_y = city_models[city]
     predictions = {}
     today = datetime.today()
     
     for day in range(7):
         future_date = today + timedelta(days=day + 1)
         date_str = future_date.strftime("%Y-%m-%d")
-        
-        future_date_array = np.array([[future_date.day]]).reshape(-1, 1)
+        future_date_array = np.array([[future_date.year, future_date.month, future_date.day]])
         
         try:
-            future_scaled = scaler.transform(future_date_array)
+            future_scaled = scaler_X.transform(future_date_array)
             future_prediction = model.predict(future_scaled)
-            future_prediction = scaler.inverse_transform(future_prediction)[0, 0]
-            
-            # Clamp predicted value to a reasonable range
-            future_prediction = max(20, min(60, future_prediction))
+            future_prediction = scaler_y.inverse_transform(future_prediction.reshape(-1, 1))[0, 0]
+            future_prediction = int(max(20, min(60, future_prediction)))  # Convert to integer
         except Exception as e:
             logger.error(f"Error making prediction for {city} on {date_str}: {e}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
-        predictions[date_str] = float(future_prediction)
+        predictions[date_str] = future_prediction
     
     update_csv(city, predictions)
     
