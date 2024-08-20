@@ -2,7 +2,7 @@
 
 ## Overview
 
-Welcome to the Heat Index Forecasting App repository! This application is designed to predict the heat index for various regions in the Philippines. Using historical weather data, our model forecasts the heat index for the current day and the next 7 days. This backend service provides predictions via a RESTful API for use in mobile applications and utilizes Linear Regression for modeling and forecasting based on historical weather data.
+Welcome to the Heat Index Forecasting App repository! This application is designed to predict the heat index for various regions in the Philippines. Using historical weather data, our model forecasts the heat index for the current day and the next 7 days. This backend service provides predictions via a RESTful API for use in mobile applications and utilizes Linear Regression for modeling and forecasting based on historical weather data from PAGASA with parameters "Year", "Month", "Day", "HeatIndex" (celsius)
 
 ## Features
 
