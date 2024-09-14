@@ -35,7 +35,10 @@ def get_prediction(models, scalers, X_input):
     """
     Get predictions from all models and return the consensus or mean.
     """
-    X_scaled = scalers['scaler_X'].transform(X_input)
+    # Convert to DataFrame with feature names
+    X_input_df = pd.DataFrame(X_input, columns=['Year', 'Month', 'Day'])
+    
+    X_scaled = scalers['scaler_X'].transform(X_input_df)
     predictions = {
         'linear_regression': scalers['scaler_y'].inverse_transform(models['linear_regression'].predict(X_scaled).reshape(-1, 1)).flatten(),
         'knn': scalers['scaler_y'].inverse_transform(models['knn'].predict(X_scaled).reshape(-1, 1)).flatten(),
