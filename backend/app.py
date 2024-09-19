@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import os
+import uvicorn
 
 app = FastAPI()
 
@@ -47,11 +48,11 @@ def get_prediction(models, scalers, X_input):
     }
 
     # Calculate consensus or mean
-    values, counts = np.unique(list(predictions.values()), return_counts=True)
+    values, counts = np.unique(np.concatenate(list(predictions.values())), return_counts=True)
     if np.any(counts >= 2):
         final_prediction = round(values[counts >= 2][0])
     else:
-        final_prediction = round(np.mean(list(predictions.values())))
+        final_prediction = round(np.mean(np.concatenate(list(predictions.values()))))
 
     return final_prediction
 
@@ -74,36 +75,39 @@ def get_today_forecast(city_name: str):
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/forecast/7days/{city_name}")
-def get_7_day_forecast(city_name: str):
+def get_7day_forecast(city_name: str):
     """
-    Endpoint to get the next 7-day forecast for a city.
+    Endpoint to get the 7-day forecast for a city.
     """
     try:
         # Load models and scalers
         models, scalers = load_models_and_scalers(city_name)
 
-        # Create a date range for the next 7 days
-        date_range = pd.date_range(start=datetime.now() + timedelta(days=1), periods=7).to_pydatetime().tolist()
-        
+        # Prediction for the next 7 days
+        today = datetime.now()
+        dates = [today + timedelta(days=i) for i in range(1, 8)]
         predictions = []
-        for date in date_range:
+
+        for date in dates:
             X_input = np.array([[date.year, date.month, date.day]])
             prediction = get_prediction(models, scalers, X_input)
-            predictions.append({
-                'date': date.strftime('%Y-%m-%d'),
-                'predicted_value': prediction
-            })
+            predictions.append({'date': date.strftime('%Y-%m-%d'), 'predicted_value': prediction})
 
         return predictions
 
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+# Adding the root route
+@app.get("/")
+async def root():
+    return {"message": "Hello, Vercel!"}
+
+# Uvicorn server for local development
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
