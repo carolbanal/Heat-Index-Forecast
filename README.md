@@ -25,7 +25,7 @@ To set up the project locally, follow these steps:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/heat-index-forecasting-app.git
+   git clone https://github.com/carolbanal/heat-index-forecasting-app.git
    cd heat-index-forecasting-app
 
 2. **Install dependencies:**
