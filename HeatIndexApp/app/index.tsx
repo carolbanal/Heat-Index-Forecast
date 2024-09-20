@@ -25,7 +25,7 @@ const App: React.FC = () => {
 
   const fetchForecast = (selectedCity: string) => {
     console.log(`Fetching forecast for ${selectedCity}...`);
-    fetch(`http://192.168.1.40:8000/forecast/today/${selectedCity}`)
+    fetch(`https://backend-flask-api.as.r.appspot.com/forecast/today/${selectedCity}`)
       .then((response) => response.json())
       .then((data) => {
         if (data && data.predicted_value) {
@@ -36,7 +36,7 @@ const App: React.FC = () => {
       })
       .catch((error) => console.error('Error fetching today\'s forecast:', error));
 
-    fetch(`http://192.168.1.40:8000/forecast/7days/${selectedCity}`)
+    fetch(`https://backend-flask-api.as.r.appspot.com/forecast/7days/${selectedCity}`)
       .then((response) => response.json())
       .then((data) => {
         if (Array.isArray(data)) {

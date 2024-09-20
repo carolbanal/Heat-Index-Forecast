@@ -1,0 +1,12 @@
+runtime: python310
+entrypoint: uvicorn app:app --host 0.0.0.0 --port $PORT
+
+instance_class: F2  # Optional, choose instance class
+env_variables:
+  APP_ENV: "production"
+
+# Automatic scaling based on demand
+automatic_scaling:
+  target_cpu_utilization: 0.65
+  min_instances: 1
+  max_instances: 2

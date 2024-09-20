@@ -5,28 +5,36 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 import uvicorn
+from google.cloud import storage
 
 app = FastAPI()
 
-# Path to models directory
-MODELS_DIR = "/Users/carol/Documents/School/3rd Year/2nd Sem/Forecast/Heat Index Forecasting App/backend/models"
+# Path to models directory in Google Cloud Storage
+BUCKET_NAME = 'backend-api'
 
 def load_models_and_scalers(city_name):
     """
-    Load models and scalers for a specific city.
+    Load models and scalers for a specific city from Google Cloud Storage.
     """
     try:
-        models = {
-            'linear_regression': joblib.load(os.path.join(MODELS_DIR, f'{city_name}_linear_regression_model.pkl')),
-            'knn': joblib.load(os.path.join(MODELS_DIR, f'{city_name}_knn_model.pkl')),
-            'random_forest': joblib.load(os.path.join(MODELS_DIR, f'{city_name}_random_forest_model.pkl')),
-            'decision_tree': joblib.load(os.path.join(MODELS_DIR, f'{city_name}_decision_tree_model.pkl')),
-        }
+        # Initialize a storage client
+        client = storage.Client()
+        bucket = client.get_bucket(BUCKET_NAME)
 
-        scalers = {
-            'scaler_X': joblib.load(os.path.join(MODELS_DIR, f'{city_name}_scaler_X.pkl')),
-            'scaler_y': joblib.load(os.path.join(MODELS_DIR, f'{city_name}_scaler_y.pkl')),
-        }
+        models = {}
+        scalers = {}
+
+        # Load models
+        for model_type in ['linear_regression', 'knn', 'random_forest', 'decision_tree']:
+            model_blob = bucket.blob(f'models/{city_name}_{model_type}_model.pkl')
+            model_blob.download_to_filename(f'/tmp/{city_name}_{model_type}_model.pkl')
+            models[model_type] = joblib.load(f'/tmp/{city_name}_{model_type}_model.pkl')
+
+        # Load scalers
+        for scaler_type in ['scaler_X', 'scaler_y']:
+            scaler_blob = bucket.blob(f'models/{city_name}_{scaler_type}.pkl')
+            scaler_blob.download_to_filename(f'/tmp/{city_name}_{scaler_type}.pkl')
+            scalers[scaler_type] = joblib.load(f'/tmp/{city_name}_{scaler_type}.pkl')
 
         return models, scalers
     except Exception as e:

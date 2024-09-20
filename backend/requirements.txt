@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-pandas
-joblib
-numpy
-tensorflow
-scikit-learn
+fastapi==0.112.0
+uvicorn==0.30.5
+joblib==1.4.0
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.4.2
+google-cloud-storage==2.8.0
