@@ -1,96 +1,60 @@
-// app/index.tsx
+import React, { useEffect, useCallback } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import HomeScreen from './HomeScreen';
+import ConfusionMatrix from './ConfusionMatrix';
+import Svg, { Path } from 'react-native-svg';
 
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, RefreshControl, Text, View } from 'react-native';
-import SearchBar from '../components/Search/SearchBar';
-import TodayForecast from '../components/Forecasts/TodayForecast';
-import WeeklyForecast from '../components/Forecasts/WeeklyForecast';
+// Prevent auto-hiding of the splash screen
+SplashScreen.preventAutoHideAsync();
 
-const citiesList = [
-  'Agusan Del Norte', 'Albay', 'Aurora', 'Batanes', 'Batangas', 'Benguet', 'Bukidnon', 'Cagayan', 'Camarines',
-  'Capiz', 'Catanduanes', 'Cavite', 'Cebu', 'Davao Del Sur', 'Eastern Samar', 'Ilocos Norte', 'Ilocos Sur',
-  'Leyte', 'Maguindanao', 'Masbate', 'Metro Manila', 'Negros Oriental', 'Neuva Ecija', 'Northern Samar',
-  'Occidental Mindoro', 'Palawan', 'Pampanga', 'Pangasinan', 'Quezon', 'Rizal', 'Romblon', 'Sorsogon',
-  'South Cotabato', 'Southern Leyte', 'Surigao Del Norte', 'Surigao Del Sur', 'Western Samar', 'Zambales',
-  'Zamboanga Del Norte'
-];
+const Tab = createBottomTabNavigator();
 
-const App: React.FC = () => {
-  const [todayForecast, setTodayForecast] = useState<number | null>(null);
-  const [weeklyForecast, setWeeklyForecast] = useState<any[]>([]);
-  const [city, setCity] = useState('Cebu'); // Default city
-  const [refreshing, setRefreshing] = useState(false);
-  const [filteredCities, setFilteredCities] = useState(citiesList);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const fetchForecast = (selectedCity: string) => {
-    console.log(`Fetching forecast for ${selectedCity}...`);
-    fetch(`https://backend-flask-api.as.r.appspot.com/forecast/today/${selectedCity}`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (data && data.predicted_value) {
-          setTodayForecast(data.predicted_value);
-        } else {
-          setTodayForecast(null);
-        }
-      })
-      .catch((error) => console.error('Error fetching today\'s forecast:', error));
-
-    fetch(`https://backend-flask-api.as.r.appspot.com/forecast/7days/${selectedCity}`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setWeeklyForecast(data);
-        } else {
-          setWeeklyForecast([]);
-        }
-      })
-      .catch((error) => console.error('Error fetching weekly forecast:', error));
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchForecast(city);
-    setRefreshing(false);
-  };
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setFilteredCities(citiesList.filter((city) => city.toLowerCase().includes(query.toLowerCase())));
-  };
-
-  const handleCitySelect = (selectedCity: string) => {
-    setCity(selectedCity);
-    setSearchQuery(''); // Clear search query
-    setFilteredCities(citiesList); // Reset the filtered cities list
-    fetchForecast(selectedCity); // Fetch forecast for the selected city
-  };
+const Index: React.FC = () => {
+  const onLayoutRootView = useCallback(async () => {
+    // Keep the splash screen visible for 3 seconds
+    setTimeout(async () => {
+      await SplashScreen.hideAsync();
+    }, 3000);
+  }, []);
 
   useEffect(() => {
-    fetchForecast(city);
-  }, [city]);
+    onLayoutRootView(); // Ensure the splash screen hides properly after 3 seconds
+  }, [onLayoutRootView]);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-800">
-      <SearchBar
-        searchQuery={searchQuery}
-        filteredCities={filteredCities}
-        onSearchQueryChange={handleSearch}
-        onCitySelect={handleCitySelect}
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { backgroundColor: 'rgba(31, 41, 55, 1)' },
+        tabBarActiveTintColor: 'orange',
+        tabBarInactiveTintColor: 'white',
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <Svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 960 960" fill={color}>
+              <Path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z" />
+            </Svg>
+          ),
+        }}
       />
-      <ScrollView
-        contentContainerStyle={{ paddingVertical: 20 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <View className="items-center">
-          <Text className="text-white text-2xl mb-4">Today's Forecast for {city}</Text>
-          <TodayForecast forecast={todayForecast} />
-          <Text className="text-white text-xl my-4">7-Day Forecast for {city}</Text>
-          <WeeklyForecast forecasts={weeklyForecast} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <Tab.Screen
+        name="ConfusionMatrix"
+        component={ConfusionMatrix}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <Svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 960 960" fill={color}>
+              <Path d="M280-280h160v-160H280v160Zm240 0h160v-160H520v160ZM280-520h160v-160H280v160Zm240 0h160v-160H520v160ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z" />
+            </Svg>
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
-export default App;
+export default Index;

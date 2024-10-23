@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "230738825630",
+    "project_id": "innit-326db",
+    "storage_bucket": "innit-326db.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:230738825630:android:84935e7d7c4716bfc4468f",
+        "android_client_info": {
+          "package_name": "com.innit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYM9jMRz-xxORqDmHlDvjdg2gNZjGxHpU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
